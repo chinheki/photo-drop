@@ -221,6 +221,7 @@ class PeersUI {
     }
 
     _onPaste(e) {
+        if (e.target instanceof Element && e.target.closest('input,textarea,[contenteditable="true"]')) return;
         // prevent send on paste when dialog is open
         if (this.shareMode.active || Dialog.anyDialogShown()) return;
 
@@ -747,7 +748,7 @@ class Dialog {
             document.activeElement.blur();
             window.blur();
         }
-        document.title = 'PairDrop | Transfer Files Cross-Platform. No Setup, No Signup.';
+        document.title = '随心传 PhotoDrop · 手机照片轻松到电脑';
         changeFavicon("images/favicon-96x96.png");
         this.correspondingPeerId = undefined;
     }
@@ -962,6 +963,10 @@ class ReceiveFileDialog extends ReceiveDialog {
 
     async _displayFiles(peerId, displayName, connectionHash, files, imagesOnly, totalSize, badgeClassName) {
         this._parseFileData(displayName, connectionHash, files, imagesOnly, totalSize, badgeClassName);
+        if (imagesOnly && files.length > 1) {
+            this._displaySelectableImages(files, peerId);
+            return;
+        }
 
         let descriptor, url, filenameDownload;
         if (files.length === 1) {
@@ -1048,8 +1053,8 @@ class ReceiveFileDialog extends ReceiveDialog {
         };
 
         document.title = files.length === 1
-            ? `${ Localization.getTranslation("document-titles.file-received") } - PairDrop`
-            : `${ Localization.getTranslation("document-titles.file-received-plural", null, {count: files.length}) } - PairDrop`;
+            ? `${ Localization.getTranslation("document-titles.file-received") } - 随心传`
+            : `${ Localization.getTranslation("document-titles.file-received-plural", null, {count: files.length}) } - 随心传`;
         changeFavicon("images/favicon-96x96-notification.png");
 
         Events.fire('set-progress', {peerId: peerId, progress: 1, status: 'process'})
@@ -1077,6 +1082,46 @@ class ReceiveFileDialog extends ReceiveDialog {
             .catch(r => console.error(r));
     }
 
+    _displaySelectableImages(files, peerId) {
+        this.$receiveTitle.textContent = `收到 ${files.length} 张图片`;
+        this.$previewBox.classList.add('selectable-images');
+        const canShare = !!navigator.share && !!navigator.canShare && navigator.canShare({files});
+        this.$shareBtn.hidden = !canShare;
+        let saving = false;
+        const update = count => {
+            this.$downloadBtn.disabled = saving || count === 0;
+            this.$shareBtn.disabled = saving || count === 0;
+            this.$downloadBtn.textContent = `保存所选（${count}）`;
+        };
+        this._imageSelection = new ReceivedImageSelection(this.$previewBox, files, update);
+        this.$downloadBtn.onclick = async () => {
+            const selection = this._imageSelection;
+            const selected = this._imageSelection?.selected() || [];
+            if (!selected.length || saving) return;
+            saving = true; update(selected.length);
+            try {
+                if (selected.length === 1) this._downloadFilesIndividually(selected);
+                else {
+                    this.$downloadBtn.textContent = '正在打包所选图片…';
+                    const blob = await ReceivedImageSelection.archive(selected);
+                    const url = URL.createObjectURL(blob);
+                    const anchor = document.createElement('a');
+                    anchor.href = url; anchor.download = `PhotoDrop_${Date.now()}.zip`; anchor.click();
+                    setTimeout(() => URL.revokeObjectURL(url),60000);
+                }
+                Events.fire('notify-user', `已请求保存 ${selected.length} 张图片`);
+            } catch (error) {Events.fire('notify-user', `保存失败：${error.message}`);}
+            finally {saving = false; if(this._imageSelection === selection) update(selection.selected().length);}
+        };
+        this.$shareBtn.onclick = () => {
+            const selected = this._imageSelection?.selected() || [];
+            if (selected.length) navigator.share({files:selected}).catch(error => console.error(error));
+        };
+        document.title = `收到 ${files.length} 张图片 - 随心传`;
+        Events.fire('set-progress', {peerId,progress:1,status:'process'});
+        this.show();
+    }
+
     _downloadFilesIndividually(files) {
         let tmpBtn = document.createElement("a");
         for (let i=0; i<files.length; i++) {
@@ -1088,6 +1133,10 @@ class ReceiveFileDialog extends ReceiveDialog {
 
     hide() {
         super.hide();
+        this._imageSelection?.destroy();
+        this._imageSelection = null;
+        this.$previewBox.classList.remove('selectable-images');
+        this.$shareBtn.disabled = false;
         setTimeout(async () => {
             this.$shareBtn.setAttribute('hidden', true);
             this.$downloadBtn.setAttribute('disabled', true);
@@ -1155,7 +1204,7 @@ class ReceiveRequestDialog extends ReceiveDialog {
 
         this.$receiveTitle.innerText = transferRequestTitle;
 
-        document.title =  `${transferRequestTitle} - PairDrop`;
+        document.title =  `${transferRequestTitle} - 随心传`;
         changeFavicon("images/favicon-96x96-notification.png");
 
         this.$acceptRequestBtn.removeAttribute('disabled');
@@ -2146,8 +2195,8 @@ class ReceiveTextDialog extends Dialog {
 
     _setDocumentTitleMessages() {
         document.title = this._receiveTextQueue.length <= 1
-            ? `${ Localization.getTranslation("document-titles.message-received") } - PairDrop`
-            : `${ Localization.getTranslation("document-titles.message-received-plural", null, {count: this._receiveTextQueue.length + 1}) } - PairDrop`;
+            ? `${ Localization.getTranslation("document-titles.message-received") } - 随心传`
+            : `${ Localization.getTranslation("document-titles.message-received-plural", null, {count: this._receiveTextQueue.length + 1}) } - 随心传`;
     }
 
     async _onCopy() {

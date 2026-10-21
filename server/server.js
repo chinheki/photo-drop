@@ -3,6 +3,7 @@ import RateLimit from "express-rate-limit";
 import {fileURLToPath} from "url";
 import path, {dirname} from "path";
 import http from "http";
+import {networkInterfaces} from "node:os";
 
 export default class PairDropServer {
 
@@ -47,6 +48,14 @@ export default class PairDropServer {
 
         // By default, clients connecting to your instance use the signaling server of your instance to connect to other devices.
         // By using `WS_SERVER`, you can host an instance that uses another signaling server.
+        app.get('/phone-links', (req, res) => {
+            const addresses = Object.values(networkInterfaces()).flat().filter(address =>
+                address && address.family === 'IPv4' && !address.internal &&
+                /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(address.address));
+            res.set('Cache-Control', 'no-store').json({
+                urls: [...new Set(addresses.map(address => `http://${address.address}:${conf.port}/`))]
+            });
+        });
         app.get('/config', (req, res) => {
             res.send({
                 signalingServer: conf.signalingServer,

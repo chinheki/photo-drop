@@ -18,8 +18,8 @@
     "instructions": {
         "x-instructions_data-drop-peer": "释放以发送到此设备",
         "no-peers_data-drop-bg": "释放来选择接收者",
-        "no-peers-subtitle": "配对新设备 或 加入一个公共房间 以便在其他网络上可见",
-        "no-peers-title": "在其他设备上打开 PairDrop 来发送文件",
+        "no-peers-subtitle": "同一 Wi-Fi 自动发现 · 不同网络可点击右上角配对或加入房间",
+        "no-peers-title": "在另一台设备打开同一网址，即可传图",
         "x-instructions_desktop": "点击以发送文件 或 右键来发送信息",
         "x-instructions_mobile": "轻触以发送文件 或 长按来发送信息",
         "x-instructions_data-drop-bg": "释放来选择接收者",

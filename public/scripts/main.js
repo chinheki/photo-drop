@@ -14,7 +14,6 @@ class PairDrop {
             "scripts/util.js",
             "scripts/network.js",
             "scripts/ui.js",
-            "scripts/libs/heic2any.min.js",
             "scripts/libs/no-sleep.min.js",
             "scripts/libs/qr-code.min.js",
             "scripts/libs/zip.min.js"
@@ -231,8 +230,11 @@ class PairDrop {
         }
 
         // remove url params from url
-        const urlWithoutParams = getUrlWithoutArguments();
-        window.history.replaceState({}, "Rewrite URL", urlWithoutParams);
+        const currentParams = new URLSearchParams(location.search);
+        const urlWithoutParams = new URL(getUrlWithoutArguments(), location.href);
+        if (currentParams.get('mobile') === '1') urlWithoutParams.searchParams.set('mobile', '1');
+        if (currentParams.get('receiver')) urlWithoutParams.searchParams.set('receiver', currentParams.get('receiver'));
+        window.history.replaceState({}, "Rewrite URL", urlWithoutParams.href);
 
         console.log("URL params evaluated.");
     }

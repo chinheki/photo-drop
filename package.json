@@ -2,17 +2,18 @@
   "name": "pairdrop",
   "version": "1.11.2",
   "type": "module",
-  "description": "",
+  "description": "PhotoDrop: PairDrop fork with automatic local JPEG/PNG image conversion",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
     "start:prod": "node server/index.js --rate-limit --auto-restart"
   },
   "author": "",
-  "license": "ISC",
+  "license": "GPL-3.0-only",
   "dependencies": {
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
+    "heic-to": "^1.6.6",
     "ua-parser-js": "^1.0.37",
     "unique-names-generator": "^4.3.0",
     "ws": "^8.16.0"

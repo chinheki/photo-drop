@@ -488,6 +488,8 @@ class Peer {
     }
 
     async _sendFile(file) {
+        this._photoActiveFile = file;
+        Events.fire('photo-file-start', {peerId: this._peerId, file});
         this.sendJSON({
             type: 'header',
             size: file.size,
@@ -664,6 +666,8 @@ class Peer {
     }
 
     _onFileTransferCompleted() {
+        Events.fire('photo-file-done', {peerId: this._peerId, file: this._photoActiveFile});
+        this._photoActiveFile = null;
         this._chunker = null;
         if (!this._filesQueue.length) {
             this._busy = false;
@@ -677,6 +681,7 @@ class Peer {
 
     _onFileTransferRequestResponded(message) {
         if (!message.accepted) {
+            Events.fire('notify-user', '接收方已拒绝此次传输，可重新发送');
             Events.fire('set-progress', {peerId: this._peerId, progress: 1, status: 'wait'});
             this._filesRequested = null;
             if (message.reason === 'ios-memory-limit') {
@@ -1082,8 +1087,16 @@ class PeersManager {
     }
 
     async _onFilesSelected(message) {
-        let files = mime.addMissingMimeTypesToFiles([...message.files]);
-        await this.peers[message.to].requestFileTransfer(files);
+        try {
+            let files = mime.addMissingMimeTypesToFiles([...message.files]);
+            if (message.kind !== 'file') files = await PhotoConverter.prepare(files);
+            const peer = this.peers[message.to];
+            if (!peer) throw new Error('接收设备已断开，请重新选择设备');
+            await peer.requestFileTransfer(files);
+        } catch (error) {
+            Events.fire('notify-user', `未发送：${error.message || '图片转换失败'}`);
+            console.error('PhotoDrop preparation failed:', error);
+        }
     }
 
     _onSendText(message) {

@@ -5,8 +5,9 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <!-- Web App Config -->
-    <title>PairDrop | Transfer Files Cross-Platform. No Setup, No Signup.</title>
+    <title>随心传 PhotoDrop · 手机照片轻松到电脑</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>if(new URLSearchParams(location.search).get('mobile')==='1')document.documentElement.classList.add('mobile-send');</script>
     <meta name="theme-color" content="#3367d6">
     <meta name="color-scheme" content="dark light">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,10 +39,12 @@
     <link rel="preload" href="lang/en.json" as="fetch">
     <link rel="preload" href="fonts/OpenSans/static/OpenSans-Medium.ttf" as="font" type="font/ttf" crossorigin>
     <link rel="stylesheet" type="text/css" href="styles/styles-main.css">
+    <link rel="stylesheet" href="styles/photo-drop.css">
     <link rel="manifest" href="manifest.json">
 </head>
 
 <body translate="no">
+    <a class="photo-brand" href="/">随心传 <span>PhotoDrop</span><small>让照片，自由抵达。</small></a>
     <header class="row-reverse wrap opacity-0">
         <a href="#about" class="icon-button" data-i18n-key="header.about" data-i18n-attrs="title aria-label">
             <svg class="icon">
@@ -104,6 +107,50 @@
         </div>
     </header>
     <!-- Center -->
+    <section class="photo-settings" aria-label="图片发送设置">
+        <button id="phone-open" type="button">▦ 手机扫码打开</button>
+        <label for="photo-format">发送图片自动转为</label>
+        <select id="photo-format"><option value="jpeg">JPEG · 日常照片</option><option value="png">PNG · 无损编码</option></select>
+        <p>默认压缩图片 · HEIC 自动转换为 JPEG / PNG</p>
+        <div id="photo-status" role="status" aria-live="polite">选择接收设备，使用下方入口发送内容</div>
+    </section>
+    <section id="sender-panel" aria-label="发送到电脑">
+        <h2>发送到电脑</h2>
+        <label for="send-target">接收设备</label>
+        <select id="send-target"><option value="">正在连接，请保持电脑网页打开…</option></select>
+        <div class="send-tabs" role="group" aria-label="发送类型">
+            <button type="button" data-send-mode="photo" aria-pressed="true">图片</button>
+            <button type="button" data-send-mode="text" aria-pressed="false">文字</button>
+            <button type="button" data-send-mode="file" aria-pressed="false">文件</button>
+        </div>
+        <div id="send-photo-pane">
+            <label class="original-option"><input id="send-original" type="checkbox"> 原图（不压缩，HEIC 仍自动转格式）</label>
+            <p>默认最长边 2048 像素、JPEG 质量 80%；原图保留尺寸，转换时使用高质量。</p>
+            <button type="button" id="choose-photos" class="send-primary" disabled>选择图片并发送</button>
+            <input id="send-photos" type="file" accept="image/*,.heic,.heif" multiple hidden>
+            <div id="photo-queue" aria-label="图片处理队列" aria-live="polite"></div>
+        </div>
+        <div id="send-text-pane" hidden>
+            <textarea id="send-text-value" placeholder="输入要传到电脑的文字或链接" aria-label="要发送的文字" maxlength="50000"></textarea>
+            <button type="button" id="send-text-button" class="send-primary" disabled>发送文字</button>
+        </div>
+        <div id="send-file-pane" hidden>
+            <p>发送任意文件，保留原文件内容，不进行图片转换或压缩。</p>
+            <button type="button" id="choose-files" class="send-primary" disabled>选择文件并发送</button>
+            <input id="send-files" type="file" multiple hidden>
+        </div>
+        <p id="send-status" role="status" aria-live="polite">等待接收设备连接…</p>
+    </section>
+    <dialog id="phone-dialog" aria-labelledby="phone-title">
+        <h2 id="phone-title">手机扫码，开始传图</h2>
+        <p>手机与这台电脑连接同一 Wi-Fi，使用相机扫码打开。</p>
+        <div id="phone-qr" role="img" aria-label="手机打开网页的二维码"></div>
+        <label for="phone-address">网页地址</label>
+        <select id="phone-address" aria-label="局域网地址"></select>
+        <p id="phone-help" role="status">正在获取局域网地址…</p>
+        <button id="phone-close" type="button">关闭</button>
+        <p><a href="/?mobile=1">在本机预览手机发送页</a></p>
+    </dialog>
     <div id="center" class="opacity-0">
         <!-- Peers -->
         <x-peers class="center grow-5"></x-peers>
@@ -828,6 +875,10 @@
     <script src="scripts/localization.js" defer></script>
     <script src="scripts/persistent-storage.js" defer></script>
     <script src="scripts/ui-main.js" defer></script>
+    <script src="scripts/photo-converter.js" defer></script>
+    <script src="scripts/phone-open.js" defer></script>
+    <script src="scripts/sender-panel.js" defer></script>
+    <script src="scripts/received-image-selection.js" defer></script>
     <script src="scripts/main.js" defer></script>
     <!-- Sounds -->
     <audio id="blop" autobuffer="true">

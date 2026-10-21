@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><title>多图勾选验收</title>
+<style>body{font:16px system-ui;max-width:700px;margin:30px auto}.receive-image-grid{display:flex;gap:15px}.receive-image-option{display:grid}img{width:130px;height:100px;object-fit:cover}</style>
+<h1>多图接收勾选验收</h1><div id="preview"></div><p id="count"></p><button id="verify">验证所选 ZIP</button><p id="result"></p>
+<script src="/scripts/libs/zip.min.js"></script><script src="/scripts/received-image-selection.js"></script>
+<script>
+(async()=>{
+ const files=[];
+ for(let i=0;i<3;i++){const c=document.createElement('canvas');c.width=200;c.height=130;const x=c.getContext('2d');x.fillStyle=['#668bdb','#71af98','#db9b66'][i];x.fillRect(0,0,200,130);const b=await new Promise(r=>c.toBlob(r));files.push(new File([b],`photo-${i+1}.png`,{type:'image/png'}));}
+ const choice=new ReceivedImageSelection(document.getElementById('preview'),files,count=>{document.getElementById('count').textContent=`已选 ${count} 张`;document.getElementById('verify').disabled=!count;});
+ document.getElementById('verify').onclick=async()=>{
+  const blob=await ReceivedImageSelection.archive(choice.selected());
+  const reader=new zip.ZipReader(new zip.BlobReader(blob));const entries=await reader.getEntries();await reader.close();
+  document.getElementById('result').textContent='ZIP 内容：'+entries.map(e=>e.filename).join(', ');
+ };
+})();
+</script>

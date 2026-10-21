@@ -1,0 +1,56 @@
+.photo-brand { position:absolute; top:22px; left:26px; z-index:4; font:700 22px/1.2 system-ui,sans-serif; color:var(--primary-color,#3367d6); text-decoration:none; }
+.photo-brand small { display:block; margin-top:6px; font-size:11px; font-weight:400; color:rgb(var(--text-color,119,119,119)); letter-spacing:2px; }
+.photo-settings { position:relative; z-index:3; align-self:center; box-sizing:border-box; width:min(580px,calc(100% - 32px)); margin:8px 16px 10px; padding:13px 20px; border:1px solid #3367d633; border-radius:16px; background:rgb(var(--bg-color,255,255,255)); text-align:center; font:13px/1.7 system-ui,sans-serif; }
+.photo-settings label { font-weight:600; }
+.photo-settings select { margin:0 6px; padding:6px 24px 6px 10px; border:1px solid #3367d655; border-radius:8px; font:inherit; color:inherit; background:transparent; }
+.photo-settings p { margin:5px 0 0; opacity:.7; font-size:12px; }
+#photo-status { min-height:18px; overflow-wrap:anywhere; color:var(--primary-color,#3367d6); }
+#phone-open { display:block; margin:0 auto 10px; padding:8px 16px; border:0; border-radius:9px; background:#3367d6; color:white; font:600 14px system-ui; cursor:pointer; }
+#phone-dialog { box-sizing:border-box; width:min(420px,calc(100% - 28px)); max-height:90vh; padding:24px; border:0; border-radius:20px; background:rgb(var(--bg-color,255,255,255)); color:rgb(var(--text-color,35,35,35)); text-align:center; overflow:auto; box-shadow:0 20px 90px #0003; }
+#phone-dialog::backdrop { background:#0b183a80; }
+#phone-dialog h2 { margin:0 0 10px; font:600 22px system-ui; }
+#phone-dialog p { font:13px/1.7 system-ui; }
+#phone-qr { width:224px; height:224px; margin:18px auto; background:white; }
+#phone-address { display:block; width:100%; margin:8px 0; padding:8px; border:1px solid #3367d655; border-radius:8px; background:transparent; color:inherit; }
+#phone-close { padding:9px 26px; border:0; border-radius:8px; background:#3367d6; color:white; cursor:pointer; }
+#sender-panel { position:relative; z-index:3; box-sizing:border-box; width:min(580px,calc(100% - 32px)); margin:0 auto 16px; padding:20px; border:1px solid #3367d633; border-radius:16px; background:rgb(var(--bg-color,255,255,255)); font:14px/1.6 system-ui; }
+#sender-panel h2 { margin:0 0 12px; font-size:21px; }
+#sender-panel p { font-size:12px; opacity:.75; margin:8px 0; }
+#send-target { width:100%; padding:10px; margin:6px 0 14px; border-radius:8px; border:1px solid #3367d655; background:transparent; color:inherit; }
+.send-tabs { display:flex; gap:8px; margin-bottom:16px; }
+.send-tabs button { flex:1; padding:10px; border:1px solid #3367d644; border-radius:10px; color:inherit; background:transparent; font:600 15px system-ui; cursor:pointer; }
+.send-tabs button[aria-pressed=true] { background:#3367d6; color:white; }
+.send-primary { display:block; width:100%; padding:13px; border:0; border-radius:10px; background:#3367d6; color:white; font:600 16px system-ui; cursor:pointer; }
+.send-primary:disabled { opacity:.45; cursor:wait; }
+#send-text-value { box-sizing:border-box; width:100%; min-height:130px; padding:12px; margin-bottom:12px; font:16px/1.5 system-ui; border:1px solid #3367d655; border-radius:10px; background:transparent; color:inherit; }
+.original-option { display:flex; align-items:center; gap:7px; }
+.original-option input { width:18px; height:18px; }
+html,body { overflow-y:auto; }
+#center { min-height:230px; }
+.mobile-send body { min-height:100dvh; height:auto; }
+.mobile-send header,.mobile-send #center,.mobile-send footer,.mobile-send canvas,.mobile-send #phone-open { display:none!important; }
+.mobile-send .photo-brand { position:relative; left:auto; top:auto; margin:24px 20px 12px; }
+.mobile-send .photo-settings { margin-top:8px; }
+.mobile-send #sender-panel { margin-top:4px; }
+#photo-queue { display:grid; gap:10px; margin-top:16px; }
+.photo-item { display:flex; align-items:center; gap:12px; padding:10px; border:1px solid #3367d622; border-radius:12px; }
+.photo-item img { width:56px; height:56px; object-fit:cover; border-radius:8px; background:#eef2ff; flex-shrink:0; }
+.photo-item>div:not(.photo-ring) { min-width:0; flex:1; }
+.photo-item strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.photo-item span { display:block; font-size:12px; opacity:.75; }
+.photo-ring { box-sizing:border-box; width:32px; height:32px; border:3px solid #ccd7ef; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:17px; }
+.photo-item[data-state=processing] .photo-ring,.photo-item[data-state=sending] .photo-ring { border-top-color:#3367d6; animation:photo-spin 1s linear infinite; }
+.photo-item[data-state=ready] .photo-ring { border-color:#3367d6; color:#3367d6; }
+.photo-item[data-state=done] .photo-ring { border-color:#168255; color:#168255; }
+.photo-item[data-state=error] .photo-ring { border-color:#ba3845; color:#ba3845; }
+@keyframes photo-spin { to {transform:rotate(360deg);} }
+.file-preview.selectable-images { display:block!important; max-height:45vh; overflow:auto; width:100%; }
+.receive-select-all { display:flex; align-items:center; gap:8px; padding:10px 4px; font:14px system-ui; cursor:pointer; }
+.receive-image-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; padding:3px; }
+.receive-image-option { position:relative; display:flex; flex-direction:column; border:1px solid #3367d633; border-radius:10px; padding:7px; gap:6px; cursor:pointer; min-width:0; }
+.receive-image-option input { position:absolute; top:10px; left:10px; width:20px; height:20px; z-index:1; accent-color:#3367d6; }
+.receive-image-option img { width:100%!important; height:100px!important; object-fit:cover; border-radius:6px; margin:0!important; }
+.receive-image-option span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:12px system-ui; }
+.receive-image-option:has(input:checked) { border-color:#3367d6; background:#3367d611; }
+@media(prefers-reduced-motion:reduce) { .photo-ring { animation:none!important; } }
+@media(max-width:700px) { .photo-brand { position:relative; top:auto; left:auto; margin:16px 20px 4px; font-size:20px; } .photo-brand small { display:none; } .photo-settings { padding:9px 12px; margin-bottom:4px; } }

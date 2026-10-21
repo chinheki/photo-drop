@@ -1,10 +1,15 @@
-const cacheVersion = 'v1.11.2';
+const cacheVersion = 'photodrop-v1.4.0';
 const cacheTitle = `pairdrop-cache-${cacheVersion}`;
 const relativePathsToCache = [
     './',
     'index.html',
     'manifest.json',
     'styles/styles-main.css',
+    'styles/photo-drop.css',
+    'scripts/photo-converter.js',
+    'scripts/phone-open.js',
+    'scripts/sender-panel.js',
+    'scripts/received-image-selection.js',
     'styles/styles-deferred.css',
     'scripts/browser-tabs-connector.js',
     'scripts/localization.js',

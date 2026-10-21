@@ -1,0 +1,8 @@
+services:
+  photodrop:
+    build: .
+    ports:
+      - "19091:3000"
+    environment:
+      WS_FALLBACK: "true"
+    restart: unless-stopped

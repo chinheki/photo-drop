@@ -1,4 +1,6 @@
 node_modules
+service*.log
+dependency-audit.json
 .DS_Store
 /dev/certs
 qrcode-svg/
