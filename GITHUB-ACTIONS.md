@@ -5,6 +5,7 @@
 - push / pull_request / 手动运行：安装锁定依赖，检查自有 JS 脚本，启动 HTTP 服务验证页面和配置接口。
 - 默认分支或 v 开头的标签：检查通过后构建完整 Node.js Docker 镜像，启动容器验证，再发布到 GitHub Container Registry。
 - 默认分支标签为 `ghcr.io/<仓库所有者>/<仓库名>:latest`，版本标签使用对应 v 标签；同时保留完整 commit SHA 镜像。
+- 每次发布任务同时提供 `photodrop-image` 下载产物（保留 30 天），内含可用 `docker load -i photodrop-image.tar.gz` 导入的完整镜像。GHCR 拒绝推送时仍提供此产物并在运行摘要中警告，不将拒绝当作镜像仓库发布成功。
 - 使用 GitHub 自动提供的 GITHUB_TOKEN，无需填写个人访问令牌；仓库或组织需允许 Actions 发布 packages。
 - 原上游的额外工作流改为手动触发，避免每次提交触发重复构建和旧 pairdrop-cli 发布。
 

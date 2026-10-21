@@ -58,6 +58,8 @@ jobs:
           docker logs photodrop-smoke
           exit 1
       - name: Publish container
+        id: registry
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_ACTOR: ${{ github.actor }}
@@ -72,3 +74,22 @@ jobs:
           docker tag "$IMAGE:sha-$COMMIT" "$IMAGE:$TAG"
           docker push "$IMAGE:$TAG"
           echo "Published: $IMAGE:$TAG" >> "$GITHUB_STEP_SUMMARY"
+      - name: Export runnable image
+        env:
+          COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          docker tag "$IMAGE:sha-$COMMIT" photodrop:latest
+          docker save photodrop:latest | gzip > photodrop-image.tar.gz
+          echo 'Download photodrop-image, extract the ZIP, then run: docker load -i photodrop-image.tar.gz' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Start: docker run -d --name photodrop -p 19091:3000 photodrop:latest' >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish downloadable image
+        uses: actions/upload-artifact@v4
+        with:
+          name: photodrop-image
+          path: photodrop-image.tar.gz
+          retention-days: 30
+          compression-level: 0
+      - name: Report registry restriction
+        if: steps.registry.outcome == 'failure'
+        run: echo '::warning::GHCR refused the push. The runnable Docker image is available in the photodrop-image artifact.'
