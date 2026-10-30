@@ -15,7 +15,9 @@
 
 网页版没有账号、持久化文件、Service Worker 或后台传输；“检查更新”只检查版本，传输中或有接收文件时不会强制刷新。
 
-验证：自动化测试覆盖 HEIC/任意二进制/空文件的双向 SHA-256 一致性、未经确认不发送内容、拒绝、取消、断线和不完整文件。真实 iPhone/iPad Safari、相册保存及相机扫码尚待真机验收。当前私有仓库的 Pages 发布被 GitHub 套餐限制阻止，配置说明见 `GITHUB-ACTIONS.md`。
+在线入口：https://chinheki.github.io/photo-drop/ 。通过 GitHub Actions 自动发布，访问者无需登录。
+
+验证：自动化测试覆盖 HEIC/任意二进制/空文件的双向 SHA-256 一致性、未经确认不发送内容、拒绝、取消、断线和不完整文件。真实 iPhone/iPad Safari、相册保存及相机扫码尚待真机验收。部署配置说明见 `GITHUB-ACTIONS.md`。
 
 ## 原有本机版本（以下说明不适用于新版网页）
 

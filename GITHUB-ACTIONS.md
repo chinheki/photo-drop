@@ -4,7 +4,7 @@
 
 `.github/workflows/pages.yml` 将 `pages/` 构建为 GitHub Pages 网站。默认分支 main 更新时先运行原文件收发测试，再发布；不需要启动 Docker 或常开电脑。访问者无需 GitHub 账号。
 
-需要仓库允许使用 GitHub Pages，并在 Settings → Pages 设置 Source 为 GitHub Actions。公共仓库可使用 GitHub Free；私有仓库需支持 Pages 的套餐。2026-10-30 实际 API 返回当前套餐不支持此私有仓库，尚未上线。必须先取得所有者同意公开仓库（包括历史），或改用支持私有源代码的托管服务，不能把构建成功当成上线成功。
+需要仓库允许使用 GitHub Pages，并在 Settings → Pages 设置 Source 为 GitHub Actions。公共仓库可使用 GitHub Free；私有仓库需支持 Pages 的套餐。仓库所有者已授权公开本项目，目标网址为 https://chinheki.github.io/photo-drop/ 。以 Actions 的实际部署成功结果为准，不能把构建成功当成上线成功。
 
 网页版本地验证：`node --test tests/transfer.test.mjs`；构建：`node scripts/build-pages.mjs`，发布目录为 `pages-dist/`。依赖库随代码固定版本提交，构建不需要 npm 安装。
 
