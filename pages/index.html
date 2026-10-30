@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#3367d6">
+  <meta name="description" content="免登录，扫码或输入相同数字，让手机、iPad 和电脑互传原图与文件。">
+  <meta name="referrer" content="no-referrer">
+  <title>随心传 PhotoDrop · 原图与文件互传</title>
+  <link rel="icon" href="./icon.png">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./vendor/peerjs.min.js" defer></script>
+  <script src="./vendor/qr-code.min.js" defer></script>
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+<main>
+  <header><a class="brand" href="./">随心传 <span>PhotoDrop</span></a><span class="pill">免登录 · 原文件</span></header>
+  <section class="intro"><span class="eyebrow">让文件，自由抵达。</span><h1>扫一扫，<br class="narrow">就能互相传。</h1><p>手机、iPad、电脑，连上同一 Wi-Fi。<br>扫码打开，或在两台设备输入相同的六位数字。</p></section>
+  <section class="card" aria-labelledby="pair-title">
+    <div class="section-head"><h2 id="pair-title"><span class="step">1</span>连接另一台设备</h2><span id="connection-badge" class="badge">未连接</span></div>
+    <div id="pair-controls">
+      <div class="field"><input id="room-code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" enterkeyhint="done" placeholder=" " aria-describedby="code-help code-error"><label for="room-code">六位连接数字</label></div>
+      <p id="code-error" class="error" role="alert"></p>
+      <div class="actions"><button id="connect" class="primary">使用这个数字连接</button><button id="random-code" class="secondary">换一组数字</button></div>
+      <p id="code-help" class="hint">已为你随机选好。另一台输入同样的数字，也可以自行约定六位数字。</p>
+    </div>
+    <div id="room-panel" hidden>
+      <div class="pair-grid"><div><p class="hint">两台设备使用同一个数字</p><strong id="active-code" class="room-number"></strong><p id="connection-status" role="status" aria-live="polite"></p><div class="actions"><button id="copy-link" class="secondary">复制连接链接</button><button id="leave" class="quiet">退出连接</button></div></div><div class="qr-wrap"><div id="qr" role="img" aria-label="另一台设备用相机扫描此二维码连接"></div><p class="hint">手机 / iPad 用相机扫码</p></div></div>
+      <p class="hint">数字和二维码只给要连接的人。每组同时连接两台设备。</p>
+    </div>
+    <p id="pair-status" role="status" aria-live="polite">无需注册，也不需要在电脑上启动服务。</p>
+  </section>
+  <section class="card" aria-labelledby="send-title">
+    <div class="section-head"><h2 id="send-title"><span class="step">2</span>发送图片或文件</h2><span id="device-name" class="hint"></span></div>
+    <p id="send-help">连接成功后，两边都可以发送和接收。</p>
+    <div class="send-grid"><button id="choose-photos" class="send-button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 6-6 4 4 3-3 5 5"/></svg><strong>选择照片 / 视频</strong><span>相册多选 · 不主动转码</span></button><button id="choose-files" class="send-button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg><strong>选择原文件</strong><span>HEIC、PDF、ZIP 等任意文件</span></button></div>
+    <input id="photos" type="file" accept="image/*,video/*,.heic,.heif" multiple hidden><input id="files" type="file" multiple hidden>
+    <p class="hint">保留浏览器交给网页的文件字节、名称和格式，不压缩、不转换。iOS 相册可能自行提供兼容版本；要确保 HEIC 原件，请从“文件”选择。</p>
+    <div id="transfer" class="transfer" hidden><div class="section-head"><strong id="transfer-title"></strong><button id="cancel-transfer" class="quiet">取消传输</button></div><progress id="progress" max="100" value="0" aria-label="传输进度"></progress><p id="transfer-status" role="status" aria-live="polite"></p></div>
+    <div id="incoming" class="incoming" hidden><h3>对方想发给你</h3><p id="incoming-summary"></p><div class="actions"><button id="accept" class="primary">接收</button><button id="reject" class="secondary">拒绝</button></div></div>
+    <p id="notice" role="status" aria-live="polite"></p>
+  </section>
+  <section id="received-section" class="card" hidden aria-labelledby="received-title"><div class="section-head"><h2 id="received-title">收到的文件</h2><button id="clear-received" class="quiet">清空列表</button></div><p class="hint">iPhone / iPad 点“分享 / 存储”，可选择存储到“文件”；系统支持的照片也可存到相册。退出连接保留此列表，刷新或关闭网页会清空。</p><div id="received"></div></section>
+  <details class="help"><summary>连接与保存小提示</summary><ul><li>手机 ↔ 电脑、iPhone ↔ iPad、手机 ↔ 手机，操作相同。连接后没有固定的发送端。</li><li>配对需要互联网及公共 PeerJS 信令服务；文件通过加密的 WebRTC 直传，不保存到本站服务器。</li><li>请保持两边网页在前台、屏幕亮着。访客 Wi-Fi、VPN 或路由器设备隔离可能阻止直连；连接超时可关闭 VPN 或换到同一手机热点。</li><li>每批最多 100 个文件、合计 200 MB；接收列表也最多保留 200 MB，以减少手机内存不足。大批照片请分批，保存后清空列表。</li><li>HEIC 不需要转换即可传输；接收设备能否预览或存入相册，取决于系统对该格式的支持。Live Photo 动态部分需要另外选择对应视频。</li><li>数字是临时连接入口，不是身份验证。接收前请确认对方和文件数量；用完退出连接。</li></ul></details>
+  <footer><span id="version">网页版 2.0.0</span><button id="check-update" class="quiet">检查更新</button><a href="https://github.com/chinheki/photo-drop">源代码 · GPL-3.0</a><p id="update-status" role="status"></p></footer>
+</main>
+<noscript>请启用 JavaScript，以连接设备和传输文件。</noscript>
+</body>
+</html>

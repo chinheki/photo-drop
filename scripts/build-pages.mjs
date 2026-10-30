@@ -1,0 +1,11 @@
+import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+const root = resolve(import.meta.dirname, '..');
+const output = resolve(root, 'pages-dist');
+await mkdir(output, { recursive: true });
+await cp(resolve(root, 'pages'), output, { recursive: true });
+await cp(resolve(root, 'LICENSE'), resolve(output, 'LICENSE'));
+await writeFile(resolve(output, '.nojekyll'), '');
+const html = await readFile(resolve(output, 'index.html'), 'utf8');
+if (/src="\//.test(html) || /href="\//.test(html)) throw new Error('Pages assets must work under the repository subpath');
+console.log(`GitHub Pages artifact: ${output}`);

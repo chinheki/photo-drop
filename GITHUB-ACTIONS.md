@@ -1,5 +1,19 @@
 # GitHub Actions 发布
 
+## 免登录网页版（新版）
+
+`.github/workflows/pages.yml` 将 `pages/` 构建为 GitHub Pages 网站。默认分支 main 更新时先运行原文件收发测试，再发布；不需要启动 Docker 或常开电脑。访问者无需 GitHub 账号。
+
+需要仓库允许使用 GitHub Pages，并在 Settings → Pages 设置 Source 为 GitHub Actions。公共仓库可使用 GitHub Free；私有仓库需支持 Pages 的套餐。2026-10-30 实际 API 返回当前套餐不支持此私有仓库，尚未上线。必须先取得所有者同意公开仓库（包括历史），或改用支持私有源代码的托管服务，不能把构建成功当成上线成功。
+
+网页版本地验证：`node --test tests/transfer.test.mjs`；构建：`node scripts/build-pages.mjs`，发布目录为 `pages-dist/`。依赖库随代码固定版本提交，构建不需要 npm 安装。
+
+网页版用公共 PeerJS 信令服务建立 WebRTC 直连。GitHub Pages 仅承载静态页面；信令服务可用性和网络隔离会影响配对，不承诺离线或跨网络必达。未配置 TURN；数据不通过本站存储服务器。
+
+参考：[GitHub Pages 自定义工作流](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)、[PeerJS 文档](https://peerjs.com/client/getting-started)。
+
+## 原有 Node.js / Docker 版本
+
 工作流：`.github/workflows/github-image.yml`（PhotoDrop Check and Publish）。
 
 - push / pull_request / 手动运行：安装锁定依赖，检查自有 JS 脚本，启动 HTTP 服务验证页面和配置接口。
