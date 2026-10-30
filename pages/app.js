@@ -1,6 +1,6 @@
 import { Transfer, MAX_BYTES } from './transfer.js';
 const $ = id => document.getElementById(id);
-const VERSION = '2.0.0';
+const VERSION = '2.0.1';
 const PREFIX = 'chinheki-photodrop-v2-';
 let peer, connection, transfer, generation = 0, timer, wakeLock, code = '', joining = false;
 let received = [];
@@ -39,13 +39,16 @@ function leave() {
   $('pair-controls').hidden = false; $('room-panel').hidden = true;
   $('connection-badge').textContent = '未连接';
   $('pair-status').textContent = '已退出。可以使用另一组数字重新连接。';
-  $('connect').disabled = false;
+  $('connect').disabled = false; $('connect-qr').disabled = false;
+  $('send-help').textContent = '连接成功后，两边都可以发送和接收。';
+  notice('');
   history.replaceState(null, '', location.pathname + location.search);
 }
 function failure(message) {
   resetConnection();
   $('pair-controls').hidden = false; $('room-panel').hidden = true;
-  $('connect').disabled = false; $('connection-badge').textContent = '连接失败';
+  $('connect').disabled = false; $('connect-qr').disabled = false; $('connection-badge').textContent = '连接失败';
+  $('send-help').textContent = '连接成功后，两边都可以发送和接收。';
   $('pair-status').textContent = message;
 }
 function showRoom(status) {
@@ -151,7 +154,7 @@ function connect() {
   $('code-error').textContent = ''; $('room-code').removeAttribute('aria-invalid'); $('room-code').blur();
   if (!window.Peer || !window.RTCPeerConnection) { failure('当前浏览器无法使用设备直传，请用新版 Safari、Chrome 或 Edge 打开。'); return; }
   resetConnection(); code = value; joining = true;
-  $('connect').disabled = true; $('pair-status').textContent = '正在连接服务…';
+  $('connect').disabled = true; $('connect-qr').disabled = true; $('pair-status').textContent = '正在连接服务…';
   const epoch = generation;
   timer = setTimeout(() => { if (generation === epoch) failure('连接服务超时，请检查互联网连接后重试。'); }, 25000);
   createPeer(false, epoch);
@@ -184,6 +187,11 @@ async function sendFiles(event) {
   try { await transfer.send(files); } catch (error) { finish(error.message, true); }
 }
 $('connect').onclick = connect;
+$('connect-qr').onclick = () => {
+  if (joining) return;
+  $('room-code').value = randomCode();
+  connect();
+};
 $('random-code').onclick = () => { $('room-code').value = randomCode(); $('code-error').textContent = ''; $('room-code').removeAttribute('aria-invalid'); };
 $('room-code').addEventListener('input', event => { if (!event.isComposing) $('room-code').value = $('room-code').value.replace(/[^0-9]/g, '').slice(0,6); });
 $('room-code').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); event.target.blur(); } });

@@ -8,10 +8,10 @@
   <meta name="referrer" content="no-referrer">
   <title>随心传 PhotoDrop · 原图与文件互传</title>
   <link rel="icon" href="./icon.png">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=2.0.1">
   <script src="./vendor/peerjs.min.js" defer></script>
   <script src="./vendor/qr-code.min.js" defer></script>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=2.0.1"></script>
 </head>
 <body>
 <main>
@@ -20,10 +20,18 @@
   <section class="card" aria-labelledby="pair-title">
     <div class="section-head"><h2 id="pair-title"><span class="step">1</span>连接另一台设备</h2><span id="connection-badge" class="badge">未连接</span></div>
     <div id="pair-controls">
+      <div class="pair-method">
+        <h3>方法一 · 扫码连接</h3>
+        <p class="hint">这台显示二维码，另一台手机或 iPad 用相机扫一扫，即可连接。</p>
+        <button id="connect-qr" class="primary">显示连接二维码</button>
+      </div>
+      <div class="pair-method">
+      <h3>方法二 · 相同数字连接</h3>
       <div class="field"><input id="room-code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" enterkeyhint="done" placeholder=" " aria-describedby="code-help code-error"><label for="room-code">六位连接数字</label></div>
       <p id="code-error" class="error" role="alert"></p>
       <div class="actions"><button id="connect" class="primary">使用这个数字连接</button><button id="random-code" class="secondary">换一组数字</button></div>
       <p id="code-help" class="hint">已为你随机选好。另一台输入同样的数字，也可以自行约定六位数字。</p>
+      </div>
     </div>
     <div id="room-panel" hidden>
       <div class="pair-grid"><div><p class="hint">两台设备使用同一个数字</p><strong id="active-code" class="room-number"></strong><p id="connection-status" role="status" aria-live="polite"></p><div class="actions"><button id="copy-link" class="secondary">复制连接链接</button><button id="leave" class="quiet">退出连接</button></div></div><div class="qr-wrap"><div id="qr" role="img" aria-label="另一台设备用相机扫描此二维码连接"></div><p class="hint">手机 / iPad 用相机扫码</p></div></div>
@@ -43,7 +51,7 @@
   </section>
   <section id="received-section" class="card" hidden aria-labelledby="received-title"><div class="section-head"><h2 id="received-title">收到的文件</h2><button id="clear-received" class="quiet">清空列表</button></div><p class="hint">iPhone / iPad 点“分享 / 存储”，可选择存储到“文件”；系统支持的照片也可存到相册。退出连接保留此列表，刷新或关闭网页会清空。</p><div id="received"></div></section>
   <details class="help"><summary>连接与保存小提示</summary><ul><li>手机 ↔ 电脑、iPhone ↔ iPad、手机 ↔ 手机，操作相同。连接后没有固定的发送端。</li><li>配对需要互联网及公共 PeerJS 信令服务；文件通过加密的 WebRTC 直传，不保存到本站服务器。</li><li>请保持两边网页在前台、屏幕亮着。访客 Wi-Fi、VPN 或路由器设备隔离可能阻止直连；连接超时可关闭 VPN 或换到同一手机热点。</li><li>每批最多 100 个文件、合计 200 MB；接收列表也最多保留 200 MB，以减少手机内存不足。大批照片请分批，保存后清空列表。</li><li>HEIC 不需要转换即可传输；接收设备能否预览或存入相册，取决于系统对该格式的支持。Live Photo 动态部分需要另外选择对应视频。</li><li>数字是临时连接入口，不是身份验证。接收前请确认对方和文件数量；用完退出连接。</li></ul></details>
-  <footer><span id="version">网页版 2.0.0</span><button id="check-update" class="quiet">检查更新</button><a href="https://github.com/chinheki/photo-drop">源代码 · GPL-3.0</a><p id="update-status" role="status"></p></footer>
+  <footer><span id="version">网页版 2.0.1</span><button id="check-update" class="quiet">检查更新</button><a href="https://github.com/chinheki/photo-drop">源代码 · GPL-3.0</a><p id="update-status" role="status"></p></footer>
 </main>
 <noscript>请启用 JavaScript，以连接设备和传输文件。</noscript>
 </body>
