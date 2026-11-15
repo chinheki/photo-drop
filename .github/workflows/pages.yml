@@ -2,9 +2,9 @@ name: Publish PhotoDrop website
 on:
   push:
     branches: [main]
-    paths: ['pages/**', 'scripts/build-pages.mjs', 'tests/transfer.test.mjs', '.github/workflows/pages.yml', 'LICENSE']
+    paths: ['pages/**', 'scripts/build-pages.mjs', 'tests/*.test.mjs', '.github/workflows/pages.yml', 'LICENSE']
   pull_request:
-    paths: ['pages/**', 'scripts/build-pages.mjs', 'tests/transfer.test.mjs', '.github/workflows/pages.yml']
+    paths: ['pages/**', 'scripts/build-pages.mjs', 'tests/*.test.mjs', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: '24'
       - run: node --check pages/app.js
-      - run: node --test tests/transfer.test.mjs
+      - run: node --test tests/transfer.test.mjs tests/zip.test.mjs
       - run: node scripts/build-pages.mjs
       - uses: actions/upload-pages-artifact@v4
         with:

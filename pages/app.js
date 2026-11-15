@@ -1,10 +1,11 @@
 import { Transfer, MAX_BYTES, MAX_TEXT_BYTES } from './transfer.js';
+import { makeZip } from './zip.js';
 const $ = id => document.getElementById(id);
-const VERSION = '2.1.0';
+const VERSION = '2.2.0';
 const PREFIX = 'chinheki-photodrop-v2-';
 let peer, connection, transfer, generation = 0, timer, wakeLock, code = '', joining = false;
 // peerText: undefined until the peer's hello arrives; false means its page predates text support.
-let textSending = false, peerText;
+let textSending = false, peerText, zipping = false;
 const utf8 = new TextEncoder();
 let received = [];
 let receivedBytes = 0;
@@ -177,8 +178,13 @@ function connect() {
   createPeer(false, epoch);
 }
 function addReceived(file) {
-  const url = URL.createObjectURL(file); received.push({ file, url }); receivedBytes += file.size;
+  const url = URL.createObjectURL(file); receivedBytes += file.size;
   const row = document.createElement('div'); row.className = 'file-row';
+  // New files start selected, so "全选下载" right after a batch needs no extra taps.
+  const pick = document.createElement('label'); pick.className = 'pick';
+  const check = document.createElement('input'); check.type = 'checkbox'; check.checked = true; check.setAttribute('aria-label', `选择 ${file.name}`);
+  check.onchange = updateSelection; pick.append(check); row.append(pick);
+  received.push({ file, url, check });
   // Do not render active formats (SVG/HTML) or auto-open downloads from peers.
   if (/^image\/(jpeg|png|gif|webp|avif)$/.test(file.type)) {
     const image = document.createElement('img'); image.className = 'file-preview'; image.alt = ''; image.src = url; image.onerror = () => image.remove(); row.append(image);
@@ -195,6 +201,53 @@ function addReceived(file) {
     actions.append(share);
   }
   row.append(actions); $('received').append(row); $('received-section').hidden = false;
+  updateSelection();
+}
+const receivedFiles = () => received.filter(item => item.file);
+const selectedFiles = () => receivedFiles().filter(item => item.check.checked).map(item => item.file);
+function updateSelection() {
+  const all = receivedFiles(), chosen = selectedFiles();
+  $('bulk-bar').hidden = all.length < 2;
+  $('select-all').checked = all.length > 0 && chosen.length === all.length;
+  $('select-all').indeterminate = chosen.length > 0 && chosen.length < all.length;
+  $('selected-count').textContent = `已选 ${chosen.length} / ${all.length} 个 · ${size(chosen.reduce((n, f) => n + f.size, 0))}`;
+  $('download-selected').disabled = zipping || !chosen.length;
+  $('download-selected').textContent = chosen.length > 1 ? `打包下载 (${chosen.length})` : '下载所选';
+  $('share-selected').hidden = !(chosen.length && navigator.canShare?.({ files: chosen }));
+  $('share-selected').disabled = zipping;
+}
+function bulkStatus(message, error = false) { $('bulk-status').textContent = message; $('bulk-status').dataset.error = String(error); }
+function saveBlob(url, name) {
+  const link = document.createElement('a'); link.href = url; link.download = name; link.hidden = true;
+  document.body.append(link); link.click(); link.remove();
+}
+function zipName() {
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `随心传-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.zip`;
+}
+async function downloadSelected() {
+  const files = selectedFiles();
+  if (!files.length || zipping) return;
+  if (files.length === 1) { saveBlob(received.find(item => item.file === files[0]).url, files[0].name); return; }
+  zipping = true; updateSelection();
+  try {
+    const zip = await makeZip(files, ({ index, count, loaded, total }) => bulkStatus(`正在打包 ${index + 1}/${count} · ${size(loaded)} / ${size(total)}`));
+    const url = URL.createObjectURL(zip);
+    saveBlob(url, zipName());
+    // Give the browser time to start reading the Blob before releasing it.
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    bulkStatus(`已打包 ${files.length} 个文件（${size(zip.size)}），请在浏览器下载中查看。iPhone / iPad 在“文件”App 的“下载”里，点开 ZIP 即可解压。`);
+  } catch (error) {
+    bulkStatus(error.message || '打包失败，请减少所选文件后重试。', true);
+  } finally {
+    zipping = false; updateSelection();
+  }
+}
+async function shareSelected() {
+  const files = selectedFiles();
+  if (!files.length) return;
+  try { await navigator.share({ files }); bulkStatus(''); }
+  catch (e) { if (e.name !== 'AbortError') bulkStatus('系统暂不支持一次分享这些文件，请少选几个，或使用“打包下载”。', true); }
 }
 function addText(text) {
   received.push({ text });
@@ -280,6 +333,9 @@ $('accept').onclick = () => { transfer?.accept(); buttons(); };
 $('reject').onclick = () => { transfer?.reject(); buttons(); };
 $('cancel-transfer').onclick = () => transfer?.cancel();
 $('send-text').onclick = sendText;
+$('select-all').onchange = () => { const on = $('select-all').checked; for (const item of receivedFiles()) item.check.checked = on; updateSelection(); };
+$('download-selected').onclick = downloadSelected;
+$('share-selected').onclick = shareSelected;
 $('text-input').addEventListener('input', updateTextCount);
 $('text-input').addEventListener('keydown', event => {
   if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.isComposing) { event.preventDefault(); sendText(); }
@@ -288,6 +344,7 @@ $('clear-received').onclick = () => {
   if (!confirm('请先保存需要的文件和文字。清空后无法从网页恢复，确定清空吗？')) return;
   for (const item of received) if (item.url) URL.revokeObjectURL(item.url);
   received = []; receivedBytes = 0; $('received').replaceChildren(); $('received-section').hidden = true;
+  bulkStatus(''); updateSelection();
 };
 $('check-update').onclick = async () => {
   $('check-update').disabled = true; $('update-status').textContent = '正在检查更新…';
