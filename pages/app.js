@@ -1,8 +1,11 @@
-import { Transfer, MAX_BYTES } from './transfer.js';
+import { Transfer, MAX_BYTES, MAX_TEXT_BYTES } from './transfer.js';
 const $ = id => document.getElementById(id);
-const VERSION = '2.0.1';
+const VERSION = '2.1.0';
 const PREFIX = 'chinheki-photodrop-v2-';
 let peer, connection, transfer, generation = 0, timer, wakeLock, code = '', joining = false;
+// peerText: undefined until the peer's hello arrives; false means its page predates text support.
+let textSending = false, peerText;
+const utf8 = new TextEncoder();
 let received = [];
 let receivedBytes = 0;
 const device = /iPad/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) ? 'iPad' : /iPhone/.test(navigator.userAgent) ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'Android 手机' : /Windows/.test(navigator.userAgent) ? 'Windows 电脑' : /Mac/.test(navigator.userAgent) ? 'Mac 电脑' : '浏览器设备';
@@ -17,6 +20,16 @@ function notice(message, error = false) { $('notice').textContent = message; $('
 function buttons() {
   const disabled = !connection?.open || !!transfer?.busy;
   $('choose-photos').disabled = disabled; $('choose-files').disabled = disabled;
+  // Text is not blocked by a running file batch.
+  $('send-text').disabled = !connection?.open || textSending || !$('text-input').value.trim() || textOver();
+}
+function textOver() { return utf8.encode($('text-input').value).byteLength > MAX_TEXT_BYTES; }
+function textStatus(message, error = false) { $('text-status').textContent = message; $('text-status').dataset.error = String(error); }
+function updateTextCount() {
+  const value = $('text-input').value, over = textOver();
+  $('text-count').textContent = over ? '超出长度上限，请分段发送或存成文件' : value ? `${Array.from(value).length} 字` : '';
+  $('text-count').dataset.over = String(over);
+  buttons();
 }
 async function keepAwake() {
   try { if (!wakeLock && document.visibilityState === 'visible' && transfer?.busy) wakeLock = await navigator.wakeLock?.request('screen'); } catch { /* Unsupported or system denied: foreground guidance remains visible. */ }
@@ -31,7 +44,7 @@ function resetConnection() {
   generation++; clearTimeout(timer);
   transfer?.close(); transfer = null;
   connection?.close(); connection = null;
-  peer?.destroy(); peer = null; joining = false;
+  peer?.destroy(); peer = null; joining = false; peerText = undefined;
   releaseWake(); buttons();
 }
 function leave() {
@@ -41,7 +54,7 @@ function leave() {
   $('pair-status').textContent = '已退出。可以使用另一组数字重新连接。';
   $('connect').disabled = false; $('connect-qr').disabled = false;
   $('send-help').textContent = '连接成功后，两边都可以发送和接收。';
-  notice('');
+  notice(''); textStatus('');
   history.replaceState(null, '', location.pathname + location.search);
 }
 function failure(message) {
@@ -88,14 +101,16 @@ function bindConnection(conn, epoch) {
         buttons(); keepAwake();
       },
       file: addReceived,
+      text(value) { addText(value); notice('收到一段文字，可在下方“收到的内容”复制。'); },
       complete(direction) { finish(direction === 'send' ? '发送完成，对方已收到全部文件。' : '接收完成。请在下方保存文件。'); },
       cancelled(reason) { finish(reason, true); }
     });
-    conn.send(JSON.stringify({ type: 'hello', device, version: 2 }));
+    // features stays additive so 2.0.x pages still connect and exchange files.
+    conn.send(JSON.stringify({ type: 'hello', device, version: 2, features: ['text'] }));
     $('connection-badge').textContent = '已连接';
     $('connection-status').textContent = '已连接另一台设备，可以双向互传。';
-    $('send-help').textContent = '已连接。你可以发送，也可以等待对方发来文件。';
-    notice('文件发送前，对方会看到接收确认。'); buttons();
+    $('send-help').textContent = '已连接。你可以发送，也可以等待对方发来文件或文字。';
+    notice('文件发送前，对方会看到接收确认；文字会直接显示给对方。'); textStatus(''); buttons();
   });
   conn.on('data', data => {
     if (generation !== epoch) return;
@@ -106,6 +121,8 @@ function bindConnection(conn, epoch) {
         if (m.type === 'hello') {
           if (m.version !== 2) { failure('两边网页版本不同，请检查更新后重新连接。'); return; }
           $('connection-status').textContent = `已连接：${String(m.device).slice(0,40)}。可以互相发送。`;
+          peerText = Array.isArray(m.features) && m.features.includes('text');
+          if (!peerText) textStatus('对方网页版本较旧，不能接收文字。请对方点页面底部“检查更新”，刷新后重新连接。', true);
           return;
         }
       } catch { /* Transfer validates other messages. */ }
@@ -179,6 +196,65 @@ function addReceived(file) {
   }
   row.append(actions); $('received').append(row); $('received-section').hidden = false;
 }
+function addText(text) {
+  received.push({ text });
+  const row = document.createElement('div'); row.className = 'file-row text-row';
+  const icon = document.createElement('span'); icon.className = 'text-icon'; icon.setAttribute('aria-hidden', 'true'); icon.textContent = '文';
+  const info = document.createElement('div'); info.className = 'file-info';
+  const title = document.createElement('strong'); title.textContent = '文字';
+  // Peer text is rendered with textContent only; never as HTML.
+  const body = document.createElement('div'); body.className = 'text-body'; body.textContent = text;
+  const time = new Date();
+  const meta = document.createElement('p'); meta.textContent = `${Array.from(text).length} 字 · ${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')} 收到`;
+  info.append(title, body, meta); row.append(icon, info);
+  const actions = document.createElement('div'); actions.className = 'file-actions';
+  const copy = document.createElement('button'); copy.className = 'secondary'; copy.textContent = '复制';
+  copy.onclick = async () => {
+    if (await copyText(text)) { copy.textContent = '已复制'; setTimeout(() => { copy.textContent = '复制'; }, 2000); }
+    else notice('浏览器不允许自动复制，请长按或选中文字后手动复制。', true);
+  };
+  actions.append(copy);
+  const link = singleLink(text);
+  if (link) {
+    const open = document.createElement('a'); open.href = link; open.target = '_blank'; open.rel = 'noopener noreferrer'; open.textContent = '打开链接';
+    actions.append(open);
+  }
+  row.append(actions); $('received').append(row); $('received-section').hidden = false;
+}
+// Only a message that is exactly one http(s) URL gets an "open" link; nothing is opened automatically.
+function singleLink(text) {
+  const value = text.trim();
+  if (!/^https?:\/\/\S+$/i.test(value)) return null;
+  try { const url = new URL(value); return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null; } catch { return null; }
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* Fall back for browsers without async clipboard permission. */ }
+  const area = document.createElement('textarea');
+  area.value = text; area.setAttribute('readonly', ''); area.style.position = 'fixed'; area.style.opacity = '0';
+  document.body.append(area); area.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch { ok = false; }
+  area.remove(); return ok;
+}
+async function sendText() {
+  const value = $('text-input').value;
+  if (!value.trim() || textSending) return;
+  if (!transfer || !connection?.open) { textStatus('请先连接另一台设备。', true); return; }
+  if (peerText === false) { textStatus('对方网页版本较旧，不能接收文字。请对方点页面底部“检查更新”，刷新后重新连接。', true); return; }
+  const epoch = generation;
+  textSending = true; textStatus('发送中…'); buttons();
+  try {
+    await transfer.sendText(value);
+    if (generation !== epoch) return;
+    // Keep anything typed while waiting for the acknowledgement.
+    if ($('text-input').value === value) $('text-input').value = '';
+    textStatus('文字已送达对方。');
+  } catch (error) {
+    if (generation === epoch) textStatus(error.message, true);
+  } finally {
+    textSending = false; updateTextCount();
+  }
+}
 async function sendFiles(event) {
   const files = Array.from(event.target.files || []); event.target.value = '';
   if (!files.length) return;
@@ -203,9 +279,14 @@ $('photos').onchange = sendFiles; $('files').onchange = sendFiles;
 $('accept').onclick = () => { transfer?.accept(); buttons(); };
 $('reject').onclick = () => { transfer?.reject(); buttons(); };
 $('cancel-transfer').onclick = () => transfer?.cancel();
+$('send-text').onclick = sendText;
+$('text-input').addEventListener('input', updateTextCount);
+$('text-input').addEventListener('keydown', event => {
+  if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.isComposing) { event.preventDefault(); sendText(); }
+});
 $('clear-received').onclick = () => {
-  if (!confirm('请先保存需要的文件。清空后无法从网页恢复，确定清空吗？')) return;
-  for (const item of received) URL.revokeObjectURL(item.url);
+  if (!confirm('请先保存需要的文件和文字。清空后无法从网页恢复，确定清空吗？')) return;
+  for (const item of received) if (item.url) URL.revokeObjectURL(item.url);
   received = []; receivedBytes = 0; $('received').replaceChildren(); $('received-section').hidden = true;
 };
 $('check-update').onclick = async () => {

@@ -2,6 +2,14 @@
 export const MAX_BYTES = 200 * 1024 * 1024;
 export const CHUNK_BYTES = 16 * 1024;
 const WINDOW_BYTES = 256 * 1024;
+// Text travels as one control message; keep it under Safari's 64 KB data-channel message limit.
+export const MAX_TEXT_BYTES = 48 * 1024;
+const MAX_TEXT_MESSAGE_BYTES = 60 * 1024;
+const TEXT_TOO_LONG = '文字太长（最多约 1.6 万个汉字或 4.9 万个英文字符），请分段发送或存成文件发送。';
+const utf8 = new TextEncoder();
+export function validText(text) {
+  return typeof text === 'string' && text.length > 0 && text.length <= MAX_TEXT_BYTES && utf8.encode(text).byteLength <= MAX_TEXT_BYTES;
+}
 export function validOffer(files) {
   return Array.isArray(files) && files.length > 0 && files.length <= 100 &&
     files.every(f => f && typeof f.name === 'string' && f.name.length > 0 && f.name.length <= 512 &&
@@ -15,6 +23,8 @@ export class Transfer {
     this.outgoing = null;
     this.incoming = null;
     this.waiters = new Map();
+    // Text delivery is independent of file batches, so cancelling a batch never fails a text send.
+    this.texts = new Map();
     this.closed = false;
   }
   get busy() { return !!(this.outgoing || this.incoming); }
@@ -36,6 +46,26 @@ export class Transfer {
   rejectWaiters(error) {
     for (const w of this.waiters.values()) { clearTimeout(w.timer); w.reject(error); }
     this.waiters.clear();
+  }
+  // Resolves once the peer confirms it received the text. Allowed while a file batch is running.
+  sendText(text) {
+    if (!validText(text)) return Promise.reject(new Error(typeof text === 'string' && text.length ? TEXT_TOO_LONG : '请输入要发送的文字。'));
+    const id = crypto.randomUUID();
+    const message = JSON.stringify({ type: 'text', id, text });
+    if (utf8.encode(message).byteLength > MAX_TEXT_MESSAGE_BYTES) return Promise.reject(new Error(TEXT_TOO_LONG));
+    if (this.closed || !this.connection.open) return Promise.reject(new Error('连接已断开，请重新连接。'));
+    const delivered = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.texts.delete(id); reject(new Error('对方没有确认收到文字。请确认对方网页已更新、保持在前台后重试。')); }, 15000);
+      this.texts.set(id, { resolve, reject, timer });
+    });
+    try { this.connection.send(message); } catch { this.settleText(id, new Error('发送失败，请检查连接后重试。')); }
+    return delivered;
+  }
+  settleText(id, error) {
+    const w = this.texts.get(id);
+    if (!w) return;
+    clearTimeout(w.timer); this.texts.delete(id);
+    if (error) w.reject(error); else w.resolve();
   }
   touch() {
     clearTimeout(this.incomingTimer);
@@ -109,13 +139,24 @@ export class Transfer {
     this.rejectWaiters(new Error(reason));
     this.handlers.cancelled?.(reason);
   }
-  close() { this.closed = true; this.cancel('连接已断开，未完成的文件需要重新发送。', false); }
+  close() {
+    this.closed = true;
+    for (const id of [...this.texts.keys()]) this.settleText(id, new Error('连接已断开，文字未确认送达，请重新连接后再发。'));
+    this.cancel('连接已断开，未完成的文件需要重新发送。', false);
+  }
   receive(data) {
     try {
       if (data instanceof ArrayBuffer) { this.chunk(data); return; }
       if (typeof data !== 'string' || data.length > 128 * 1024) return;
       const m = JSON.parse(data);
       if (!m || typeof m.id !== 'string' || m.id.length > 64) return;
+      if (m.type === 'text') {
+        if (!validText(m.text)) return;
+        this.handlers.text?.(m.text);
+        this.control({ type: 'text-ack', id: m.id });
+        return;
+      }
+      if (m.type === 'text-ack') { this.settleText(m.id); return; }
       if (m.type === 'offer') {
         if (this.busy || !validOffer(m.files)) {
           this.control({ type: 'reject', id: m.id, reason: '对方正在传输，或文件超过每批 200 MB / 100 个的限制。' }); return;
